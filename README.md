@@ -1,250 +1,201 @@
-# Parallax
+```
+  ██████╗  █████╗ ██████╗  █████╗ ██╗     ██╗      █████╗ ██╗  ██╗
+  ██╔══██╗██╔══██╗██╔══██╗██╔══██╗██║     ██║     ██╔══██╗╚██╗██╔╝
+  ██████╔╝███████║██████╔╝███████║██║     ██║     ███████║ ╚███╔╝
+  ██╔═══╝ ██╔══██║██╔══██╗██╔══██║██║     ██║     ██╔══██║ ██╔██╗
+  ██║     ██║  ██║██║  ██╗██║  ██║███████╗███████╗██║  ██║██╔╝ ██╗
+  ╚═╝     ╚═╝  ╚═╝╚═╝  ╚═╝╚═╝  ╚═╝╚══════╝╚══════╝╚═╝  ╚═╝╚═╝  ╚═╝
+                              AI Research & Intelligence Agent
+```
 
-Personal intelligence agent: RAG knowledge base + web research + market data + Telegram bot.
+[![Python](https://img.shields.io/badge/Python-3.11+-blue?logo=python&logoColor=white)](https://python.org)
+[![LangChain](https://img.shields.io/badge/LangChain-RAG-green?logo=chainlink&logoColor=white)](https://langchain.com)
+[![ChromaDB](https://img.shields.io/badge/ChromaDB-vectorstore-orange)](https://trychroma.com)
+[![Telegram](https://img.shields.io/badge/Telegram-bot-2CA5E0?logo=telegram&logoColor=white)](https://core.telegram.org/bots)
+[![License](https://img.shields.io/github/license/ysz7/Parallax)](LICENSE)
 
-Collects signals from 8 sources, scores them with AI, combines news + market data into investment-grade briefings, and surfaces concrete opportunities — all from a CLI or Telegram.
+Personal AI research agent. Collects signals from 8 web sources, scores them with LLM, combines news + market data into investment-grade briefings, and answers questions from your local knowledge base — all from a CLI or Telegram bot.
 
 ---
 
 ## Features
 
-### RAG Knowledge Base
-- Index local files (`.pdf`, `.docx`, `.csv`, `.txt`, `.md`) by dropping them in `data/inbox/` or passing a path in the CLI
-- ChromaDB vectorstore with `nomic-embed-text` embeddings
-- Ask any question — answer is generated from your indexed documents + collected intel
-- Multi-turn conversation history in both CLI and Telegram
-- Three search modes: `all` (docs + intel), `docs` (local files only), `intel` (web research only)
-- `/stats` shows chunk counts per file; delete indexed files by number
+**RAG Knowledge Base**
+- Drop `.pdf`, `.docx`, `.csv`, `.txt`, `.md` into `data/inbox/` — indexed automatically
+- ChromaDB + `nomic-embed-text` embeddings
+- Three search modes: `all` (docs + intel), `docs` (local only), `intel` (web only)
+- Multi-turn conversation history
 
-### Web Intelligence Collection (`/research`)
-Collects fresh items from 8 sources in parallel, deduplicates via MD5, scores each item with AI (CCW 1–10), and generates an instant summary of what's new:
+**Web Intelligence (`/research`)**  
+Collects in parallel, deduplicates via MD5, scores every item 1–10 with LLM (CCW):
 
 | Source | Auth |
 |---|---|
 | Hacker News | None |
-| Reddit | None — customize subreddits via `REDDIT_SUBS` |
+| Reddit | None — configure via `REDDIT_SUBS` |
 | GitHub Trending | None |
 | Product Hunt | None |
-| Mastodon | None — configure instance via `MASTODON_INSTANCE` |
-| Dev.to | Optional `DEVTO_API_KEY` for higher rate limits |
-| Google Trends | None — set region via `GOOGLE_TRENDS_GEO` |
-| Custom RSS | Add any feed via `/rss add <url>` |
+| Mastodon | None — configure via `MASTODON_INSTANCE` |
+| Dev.to | Optional `DEVTO_API_KEY` |
+| Google Trends | None — configure via `GOOGLE_TRENDS_GEO` |
+| Custom RSS | `/rss add <url>` |
 
-Auto-research runs every N minutes in the background (set `AUTO_RESEARCH_INTERVAL`). After each research run, a market snapshot is also fetched automatically so briefings always have fresh prices.
+Auto-research runs every N minutes in the background (`AUTO_RESEARCH_INTERVAL`).
 
-### CCW Impact Scoring
-Every new item is scored 1–10 by the LLM for real-world impact:
+**CCW Impact Scoring**
 
 | Score | Meaning |
 |---|---|
-| 9–10 🌍 | Major breakthrough / civilisation-level event |
-| 7–8 ⚡ | Significant shift worth acting on |
-| 5–6 💡 | Interesting, worth following |
+| 9–10 | Major breakthrough |
+| 7–8 | Significant shift worth acting on |
+| 5–6 | Interesting, worth following |
 | 1–4 | Routine noise |
 
-CCW scores rank `/news`, prioritize `/briefing` context, and trigger smart alerts (score ≥ 7).
+Scores rank `/news`, prioritize `/briefing` context, and trigger smart alerts (≥ 7).
 
-### Market Data (`/market`)
-Fetches a live snapshot of crypto, stocks, and forex using free public APIs (no mandatory API keys):
+**Market Data (`/market`)**
+- Crypto via CoinGecko, stocks via Alpha Vantage + Finnhub, forex via open.er-api
+- All free, no mandatory API keys
+- SQLite history for trend tracking
+- Auto-alerts on crypto ≥ 8% or stocks ≥ 5% move in 24h
 
-- **Crypto** — CoinGecko: price, 24h change, market cap, volume (configurable via `CRYPTO_COINS`)
-- **Stocks** — Alpha Vantage + Finnhub: price, 24h change (configurable via `STOCK_SYMBOLS`)
-- **Forex** — open.er-api: USD rates for configured currency pairs (`FOREX_PAIRS`)
-- All snapshots are stored in SQLite (`data/intel/market_history.db`) for trend tracking
-- Alert signals fire automatically when crypto moves ≥ 8% or stocks ≥ 5% in 24h
+**Daily Briefing (`/briefing`)**  
+Combines top news (ranked by CCW) + market snapshots into a structured report:
+signal themes, market analysis, dominant trend, capital flow, BUY/HOLD/AVOID verdict, 3 things to research today. Saved to `data/exports/`.
 
-### Daily Briefing (`/briefing`)
-Combines top news from the last 30 days (ranked by CCW) with up to 10 market snapshots into a structured report:
-
-- **Signal themes** — recurring topics across 2+ sources (confirmed signals, not noise)
-- **Market analysis** — price movements with interpretation of risk appetite
-- **Dominant trend** — strongest combined news + market signal
-- **Capital flow** — sectors attracting builders and investors right now
-- **Investment direction** — explicit BUY / HOLD / AVOID verdict for crypto, stocks, and niches to enter or avoid
-- **3 things to research today** — specific items from the data with one-line rationale
-
-Saved to `data/exports/briefing_YYYYMMDD_HHMM.md`.
-
-### Trend & Opportunity Analysis
-- **`/ideas`** — 5 business ideas generated from current trends, each with entry strategy and competition estimate. Saved to `data/exports/`
-- **`/report <topic>`** — deep research report on any topic combining RAG + live LLM analysis
-
-### Smart Alerts (background)
-Runs on a configurable interval, scores recent items, and sends a Telegram notification when a signal score ≥ 7 is detected. Alert history saved to `data/intel/alerts_log.json`.
-
-### Morning Briefing (Telegram)
-Set `MORNING_BRIEFING_HOUR=8` to receive an automatic daily briefing at the configured hour.
-
-### Reminders (`/remind`)
-Natural language date parsing in Russian and English via `dateparser`:
-```
-/remind Call Alex tomorrow at 3pm
-/remind Quarterly review in 2 weeks
-```
-Fires a system notification (desktop) or Telegram message when due. Active reminders listed via `/reminders`.
-
-### Custom RSS Feeds
-```
-/rss list            — show all feeds
-/rss add <url>       — add a feed
-/rss remove <N>      — remove feed by number
-```
-
-### Token Tracking (`/tokens`)
-Tracks Anthropic API usage and cost across all operations. Reset the counter with `/tokens reset`.
-
-### Error Log (`/logs`)
-Actionable log of recent errors — source, message, context — for debugging without log file diving.
-
-### Response Language (`/set lang`)
-Switch the agent's response language at runtime:
-```
-/set lang RU
-/set lang EN
-/set lang DE
-```
-
-### Concurrent Safety
-Heavy commands (`/research`, `/briefing`, `/ideas`, `/market`) use two-level locking:
-- **In-process gate** — if the same command is already running, a second caller waits and receives the same result (no duplicate LLM calls)
-- **File lock** (`filelock`) — safe across CLI + Telegram bot running simultaneously, and Docker containers sharing `data/`
+**Other**
+- `/ideas` — 5 business ideas from current trends with entry strategy
+- `/report <topic>` — deep research report combining RAG + LLM
+- `/predict`, `/flows` — cross-niche predictions and money flow analysis
+- `/remind` — natural language reminders (ru + en via `dateparser`)
+- `/tokens` — Anthropic API usage and cost tracking
+- Smart alerts via Telegram when signal score ≥ 7
+- Morning briefing at configured hour (`MORNING_BRIEFING_HOUR`)
+- Concurrent safety: in-process gate + file lock for CLI + bot running simultaneously
 
 ---
 
-## Quick Start
+## Install
 
 **Requirements:** Python 3.11+, [Ollama](https://ollama.com) (or Anthropic API key)
 
+```bash
+git clone https://github.com/ysz7/Parallax.git
+cd Parallax
+python -m venv .venv
+```
+
+```bash
+# Windows
+.venv\Scripts\activate
+# Linux / macOS
+source .venv/bin/activate
+```
+
+```bash
+pip install -r requirements.txt
+```
+
+Pull local models (skip if using Anthropic):
 ```bash
 ollama pull gemma3
 ollama pull nomic-embed-text
 ```
 
-```bash
-git clone <repo>
-cd parallax
-python -m venv .venv
-.venv\Scripts\activate        # Windows
-# source .venv/bin/activate   # Linux/macOS
-pip install -r requirements.txt
-```
+---
 
-### Configure `.env`
+## Configure
+
+Create `.env` in the project root:
 
 ```env
 # LLM — choose one
 LLM_PROVIDER=ollama
 OLLAMA_MODEL=gemma3
 
-# or Anthropic (recommended for server — no GPU needed)
+# or Anthropic (recommended for server deployments — no GPU needed)
 # LLM_PROVIDER=anthropic
 # ANTHROPIC_API_KEY=sk-ant-...
 # ANTHROPIC_MODEL=claude-sonnet-4-20250514
 
-# Telegram
+# Telegram (required for bot.py)
 TELEGRAM_BOT_TOKEN=
-TELEGRAM_ALLOWED_USER_ID=123456789   # your Telegram user ID (comma-separated for multiple)
+TELEGRAM_ALLOWED_USER_ID=         # your Telegram user ID; comma-separated for multiple
 
 # Auto-research interval in minutes (0 = off)
 AUTO_RESEARCH_INTERVAL=360
 
 # Morning briefing hour in 24h format (0 = off), Telegram only
 MORNING_BRIEFING_HOUR=8
-```
 
-### Run
+# Optional market data keys (free tiers at alphavantage.co and finnhub.io)
+ALPHAVANTAGE_KEY=
+FINNHUB_KEY=
 
-```bash
-python cli.py    # local CLI
-python bot.py    # Telegram bot
-
-# Windows shortcuts (auto-activate venv + install deps on first run):
-start-cli.bat
-start-bot.bat
+# Optional customization
+REDDIT_SUBS=
+MASTODON_INSTANCE=mastodon.social
+GOOGLE_TRENDS_GEO=US
+CRYPTO_COINS=bitcoin,ethereum,solana
+STOCK_SYMBOLS=AAPL,NVDA,MSFT
+FOREX_PAIRS=EUR,GBP,JPY
 ```
 
 ---
 
-## Commands
+## CLI
+
+```bash
+python cli.py
+# or on Windows:
+start-cli.bat
+```
+
+Type any text to query the knowledge base. Use commands:
 
 | Command | Description |
 |---|---|
-| `/research` | Collect all sources + CCW scoring + auto-summary + market snapshot |
-| `/news [N]` | Last N news items sorted by CCW score (default 10) |
-| `/briefing` | Full briefing: signal themes + market analysis + investment direction |
+| `/research` | Collect all sources + CCW scoring + market snapshot |
+| `/news [N]` | Last N items sorted by CCW score (default 10) |
+| `/briefing [days]` | Full briefing: signals + market + investment direction |
+| `/predict [days]` | Cross-niche predictions with probabilities |
+| `/flows [days]` | Sectors where money is moving now |
 | `/ideas` | 5 business ideas based on current trends |
 | `/market` | Crypto + stocks + forex live snapshot |
 | `/report <topic>` | Deep report on any topic |
-| `/reports` | List / view / delete saved reports |
-| `/rss list` | List configured RSS feeds |
-| `/rss add <url>` | Add an RSS feed |
-| `/rss remove <N>` | Remove an RSS feed |
-| `/tokens` | Anthropic token usage and cost |
-| `/tokens reset` | Reset token counter |
-| `/logs` | Recent error log |
-| `/set lang <code>` | Response language: EN, RU, DE, etc. |
-| `/remind <text>` | Add reminder (natural language date, ru+en) |
+| `/reports` | List / view / export / delete saved reports |
+| `/rss list/add/remove` | Manage custom RSS feeds |
+| `/remind <text>` | Add reminder (natural language, ru + en) |
 | `/reminders` | List active reminders |
 | `/stats` | Knowledge base stats + delete indexed files |
+| `/tokens` | Anthropic token usage and cost |
+| `/logs` | Recent error log |
+| `/set lang <code>` | Response language: EN, RU, DE, etc. |
 
-**Any text** → RAG search across the knowledge base.
-
-**File path or drag & drop** → indexes the file automatically.
-
----
-
-## Architecture
-
-```
-cli.py / bot.py              ← entry points, no business logic
-    │
-    └── core/
-        ├── rag_engine.py    ← ChromaDB vectorstore, document loading, RAG chain
-        ├── intel.py         ← web collectors (8 sources), deduplication, feed storage
-        ├── rss.py           ← custom RSS feed manager
-        ├── ccw.py           ← AI impact scoring (1-10) via LLM batch
-        ├── trends.py        ← trend analysis, briefing (news+market), opportunity scanner
-        ├── agent.py         ← smart alerts (score ≥ 7), idea generator
-        ├── market_pulse.py  ← CoinGecko + Alpha Vantage + Finnhub, SQLite history
-        ├── reminders.py     ← JSON reminders, natural language date parsing
-        ├── config.py        ← persistent settings (language, search mode, etc.)
-        ├── token_tracker.py ← Anthropic usage and cost tracking
-        ├── error_logger.py  ← actionable error log
-        └── formatter.py     ← markdown → ANSI (CLI) / HTML (Telegram)
-```
-
-### Data layout
-
-```
-data/
-├── inbox/              ← drop files here for automatic indexing
-├── processed/          ← files after indexing
-├── vector_db/          ← ChromaDB embeddings
-├── exports/            ← generated reports and briefings (.md)
-├── config.json         ← persistent settings (lang, mode)
-├── tokens.json         ← Anthropic token usage log
-├── logs/errors.json    ← error log
-└── intel/
-    ├── latest_feed.json     ← cached feed (last 3000 items)
-    ├── seen_hashes.json     ← dedup hashes (last 10k)
-    ├── rss_feeds.json       ← custom RSS feed list
-    ├── market_history.db    ← SQLite: market snapshots over time
-    ├── alerts_log.json      ← smart alerts history
-    └── ideas_log.json       ← generated ideas cache
-```
+Drop a file path or drag & drop a file → indexed automatically.
 
 ---
 
-## Deployment
+## Telegram Bot
 
-### Docker
+```bash
+python bot.py
+# or on Windows:
+start-bot.bat
+```
 
-```dockerfile
-FROM python:3.11-slim
-WORKDIR /app
-COPY . .
-RUN pip install -r requirements.txt
-CMD ["python", "bot.py"]
+Same command set as CLI. Additional Telegram features:
+- Send a file → indexed directly from the chat
+- Smart alerts pushed automatically when signal score ≥ 7
+- Morning briefing at `MORNING_BRIEFING_HOUR`
+- Access restricted to `TELEGRAM_ALLOWED_USER_ID`
+
+---
+
+## Docker
+
+```bash
+docker compose up -d
 ```
 
 ```yaml
@@ -258,43 +209,25 @@ services:
     restart: unless-stopped
 ```
 
-### VPS without Docker
-
-```bash
-# Linux/macOS
-source .venv/bin/activate
-python bot.py
-```
-
-Use `screen`, `tmux`, or systemd to keep it running. Set `LLM_PROVIDER=anthropic` — no GPU or Ollama needed on the server.
+Data persists in `./data/` on the host.
 
 ---
 
-## Environment Variables
+## Architecture
 
-```env
-# ── LLM ───────────────────────────────────────────
-LLM_PROVIDER=ollama              # ollama | anthropic
-OLLAMA_MODEL=gemma3
-ANTHROPIC_API_KEY=
-ANTHROPIC_MODEL=claude-sonnet-4-20250514
-
-# ── Telegram ───────────────────────────────────────
-TELEGRAM_BOT_TOKEN=
-TELEGRAM_ALLOWED_USER_ID=        # comma-separated for multiple users
-MORNING_BRIEFING_HOUR=8          # 24h format, 0 = off
-
-# ── Research ───────────────────────────────────────
-AUTO_RESEARCH_INTERVAL=360       # minutes, 0 = off
-REDDIT_SUBS=                     # comma-separated subreddits, empty = defaults
-MASTODON_INSTANCE=mastodon.social
-DEVTO_API_KEY=                   # optional, for higher rate limits
-GOOGLE_TRENDS_GEO=US             # 2-letter country code
-
-# ── Market data ────────────────────────────────────
-ALPHAVANTAGE_KEY=                # free at alphavantage.co
-FINNHUB_KEY=                     # free at finnhub.io
-CRYPTO_COINS=bitcoin,ethereum,solana
-STOCK_SYMBOLS=AAPL,NVDA,MSFT
-FOREX_PAIRS=EUR,GBP,JPY
+```
+cli.py / bot.py              ← entry points, no business logic
+    └── core/
+        ├── rag_engine.py    ← ChromaDB vectorstore, document loading, RAG chain
+        ├── intel.py         ← web collectors (8 sources), deduplication, feed storage
+        ├── rss.py           ← custom RSS feed manager
+        ├── ccw.py           ← AI impact scoring (1–10)
+        ├── trends.py        ← trend analysis, briefing, opportunity scanner
+        ├── agent.py         ← smart alerts (score ≥ 7), idea generator
+        ├── market_pulse.py  ← CoinGecko + Alpha Vantage + Finnhub, SQLite history
+        ├── reminders.py     ← JSON reminders, natural language date parsing
+        ├── config.py        ← persistent settings
+        ├── token_tracker.py ← Anthropic usage and cost tracking
+        ├── error_logger.py  ← actionable error log
+        └── formatter.py     ← markdown → ANSI (CLI) / HTML (Telegram)
 ```
