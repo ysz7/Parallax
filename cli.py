@@ -20,7 +20,7 @@ load_dotenv()
 import warnings
 warnings.filterwarnings("ignore", category=UserWarning, module="langchain_core")
 
-from core.rag_engine import ask, index_file, stats, INBOX_DIR, DONE_DIR, EXPORT_DIR, splitter, vectorstore
+from core.rag_engine import ask, index_file, stats, INBOX_DIR, DONE_DIR, EXPORT_DIR, splitter, vectorstore, unload_llm
 from core.reminders import extract_reminder_intent, add_reminder, list_reminders, format_reminder, parse_date, start_watcher
 from core.formatter import render_cli
 
@@ -1076,6 +1076,7 @@ def main():
 
         # ── Exit ──────────────────────────────────────────────────────────────
         if user.lower() in ("/exit", "/quit", "exit", "quit"):
+            unload_llm()
             print(f"{DIM}Bye!{R}")
             break
 

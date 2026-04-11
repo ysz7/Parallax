@@ -60,7 +60,8 @@ def get_llm():
     else:
         from langchain_ollama import ChatOllama
         model = os.getenv("OLLAMA_MODEL", "gemma3")
-        return ChatOllama(model=model, temperature=0.1)
+        num_ctx = int(os.getenv("OLLAMA_NUM_CTX", 8192))
+        return ChatOllama(model=model, temperature=0.1, num_ctx=num_ctx)
 
 
 class _LazyEmbeddings:
@@ -102,6 +103,24 @@ class _LazyEmbeddings:
 
 llm = get_llm()
 embeddings = _LazyEmbeddings()
+
+
+def unload_llm():
+    """Ask Ollama to immediately evict the model from VRAM/RAM (keep_alive=0).
+    No-op when using any other provider."""
+    provider = os.getenv("LLM_PROVIDER", "ollama").lower()
+    if provider != "ollama":
+        return
+    try:
+        import requests
+        model = os.getenv("OLLAMA_MODEL", "gemma3")
+        requests.post(
+            "http://localhost:11434/api/generate",
+            json={"model": model, "keep_alive": 0},
+            timeout=5,
+        )
+    except Exception:
+        pass
 
 # ── Vector DB ──────────────────────────────────────────────────────────────────
 vectorstore = Chroma(
